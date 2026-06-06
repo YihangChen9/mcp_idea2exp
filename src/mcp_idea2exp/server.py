@@ -100,6 +100,16 @@ def main() -> None:
         # their default (/mcp vs /mcp/ with/without redirect). Production
         # contract: POST http://HOST:PORT/mcp
         mcp.settings.streamable_http_path = "/mcp"
+        # The SDK's DNS-rebinding protection only accepts localhost Host
+        # headers by default — clients reaching the box by IP get 421.
+        # This server lives on a trusted internal box (same posture as the
+        # aigraph MCP's open CORS); allow any Host/Origin.
+        from mcp.server.transport_security import TransportSecuritySettings
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+            allowed_hosts=["*"],
+            allowed_origins=["*"],
+        )
         mcp.run(transport="streamable-http")
     else:
         mcp.run()
