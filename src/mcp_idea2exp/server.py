@@ -96,6 +96,10 @@ def main() -> None:
     if args.http:
         mcp.settings.host = args.host
         mcp.settings.port = args.port
+        # Pin the endpoint path explicitly — mcp-SDK versions differ in
+        # their default (/mcp vs /mcp/ with/without redirect). Production
+        # contract: POST http://HOST:PORT/mcp
+        mcp.settings.streamable_http_path = "/mcp"
         mcp.run(transport="streamable-http")
     else:
         mcp.run()

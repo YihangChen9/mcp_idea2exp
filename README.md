@@ -87,11 +87,11 @@ tmux new-session -d -s idea2exp \
 sleep 3 && ss -ltnp | grep 8766
 ```
 
-MCP endpoint: `http://<host>:8766/mcp/` (Streamable HTTP, same protocol
+MCP endpoint: `http://<host>:8766/mcp` (Streamable HTTP, same protocol
 shape as aigraph). Sanity:
 
 ```bash
-curl -sL -XPOST http://127.0.0.1:8766/mcp/ \
+curl -sL -XPOST http://127.0.0.1:8766/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
@@ -112,7 +112,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 async def main():
     c = MultiServerMCPClient({
         "aigraph":  {"url": "http://127.0.0.1:8765/mcp/", "transport": "streamable_http"},
-        "idea2exp": {"url": "http://127.0.0.1:8766/mcp/", "transport": "streamable_http"},
+        "idea2exp": {"url": "http://127.0.0.1:8766/mcp", "transport": "streamable_http"},
     })
     tools = {t.name: t for t in await c.get_tools()}
     stage3 = await tools["get_idea_report"].ainvoke({
