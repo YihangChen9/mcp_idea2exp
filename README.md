@@ -69,7 +69,12 @@ IDEA2EXP_BASE_URL=... IDEA2EXP_API_KEY=... .venv/bin/mcp-idea2exp   # stdio MCP 
 
 This server is the **downstream stage of the aigraph MCP** (`:8765`,
 Stage-3 idea reports). Deploy it next to aigraph on the production box,
-port **8766**, Streamable HTTP:
+port **8768**, Streamable HTTP.
+
+> Production box port map (do not collide):
+> `8765` aigraph (Stage 3) · `8768` memento_mcp · `8767` paper-writer
+> (Stage 8) · **`8768` idea2exp (Stage 4-5, this server)**
+
 
 ```bash
 cd ~/mcp_idea2exp
@@ -77,21 +82,26 @@ cd ~/mcp_idea2exp
 python3 -m venv .venv && .venv/bin/pip install -e . \
   -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
-# make sure 8766 is free, then run in tmux:
-ss -ltnp | grep 8766 && tmux kill-session -t idea2exp 2>/dev/null
+# make sure 8768 is free, then run in tmux:
+ss -ltnp | grep 8768 && tmux kill-session -t idea2exp 2>/dev/null
+cat > ~/mcp_idea2exp/.env <<'ENV'    # chmod 600; keeps the key out of ps
+IDEA2EXP_BASE_URL=https://<gateway>/v1
+IDEA2EXP_API_KEY=<key>
+ENV
+chmod 600 ~/mcp_idea2exp/.env
 tmux new-session -d -s idea2exp \
-  "cd ~/mcp_idea2exp && IDEA2EXP_BASE_URL=https://<gateway>/v1 \
-   IDEA2EXP_API_KEY=<key> .venv/bin/mcp-idea2exp --http --host 0.0.0.0 --port 8766 \
+  "cd ~/mcp_idea2exp && set -a && . ./.env && set +a && \
+   .venv/bin/mcp-idea2exp --http --host 0.0.0.0 --port 8768 \
    2>&1 | tee /tmp/idea2exp_mcp.log"
 
-sleep 3 && ss -ltnp | grep 8766
+sleep 3 && ss -ltnp | grep 8768
 ```
 
-MCP endpoint: `http://<host>:8766/mcp` (Streamable HTTP, same protocol
+MCP endpoint: `http://<host>:8768/mcp` (Streamable HTTP, same protocol
 shape as aigraph). Sanity:
 
 ```bash
-curl -sL -XPOST http://127.0.0.1:8766/mcp \
+curl -sL -XPOST http://127.0.0.1:8768/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
@@ -112,7 +122,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 async def main():
     c = MultiServerMCPClient({
         "aigraph":  {"url": "http://127.0.0.1:8765/mcp/", "transport": "streamable_http"},
-        "idea2exp": {"url": "http://127.0.0.1:8766/mcp", "transport": "streamable_http"},
+        "idea2exp": {"url": "http://127.0.0.1:8768/mcp", "transport": "streamable_http"},
     })
     tools = {t.name: t for t in await c.get_tools()}
     stage3 = await tools["get_idea_report"].ainvoke({
